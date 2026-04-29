@@ -36,27 +36,32 @@ def main():
         stream=True,
     )
 
-    prompt = get_input()
+    while True:
+        prompt = get_input()
 
-    completion = configured_completion(messages=[{"role": "user", "content": prompt}])
+        completion = configured_completion(
+            messages=[{"role": "user", "content": prompt}]
+        )
 
-    thinking_active = False
+        thinking_active = False
 
-    for chunk in completion:
-        if not getattr(chunk, "choices", None):
-            continue
+        for chunk in completion:
+            if not getattr(chunk, "choices", None):
+                continue
 
-        if chunk.choices:
-            delta = chunk.choices[0].delta
-            reasoning_content = getattr(delta, "reasoning_content", None)
-            if reasoning_content:
-                thinking_active = True
-                print(reasoning_content, end="", flush=True)
-            if delta.content is not None:
-                if thinking_active:
-                    print("\n-----")
-                    thinking_active = False
-                print(chunk.choices[0].delta.content, end="", flush=True)
+            if chunk.choices:
+                delta = chunk.choices[0].delta
+                reasoning_content = getattr(delta, "reasoning_content", None)
+                if reasoning_content:
+                    thinking_active = True
+                    print(reasoning_content, end="", flush=True)
+                if delta.content is not None:
+                    if thinking_active:
+                        print("\n-----思考結束-----")
+                        thinking_active = False
+                    print(chunk.choices[0].delta.content, end="", flush=True)
+
+        print("\n-----回答結束-----")
 
 
 if __name__ == "__main__":
