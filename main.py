@@ -36,14 +36,17 @@ def main():
         stream=True,
     )
 
+    message_history = []
+
     while True:
         prompt = get_input()
+        message_history.append({"role": "user", "content": prompt})
 
-        completion = configured_completion(
-            messages=[{"role": "user", "content": prompt}]
-        )
+        print(message_history)
+        completion = configured_completion(messages=message_history)
 
         thinking_active = False
+        respond = ""
 
         for chunk in completion:
             if not getattr(chunk, "choices", None):
@@ -57,11 +60,13 @@ def main():
                     print(reasoning_content, end="", flush=True)
                 if delta.content is not None:
                     if thinking_active:
-                        print("\n-----思考結束-----")
+                        print("\n-----思考結束-----\n")
                         thinking_active = False
-                    print(chunk.choices[0].delta.content, end="", flush=True)
+                    respond += delta.content
+                    print(delta.content, end="", flush=True)
 
-        print("\n-----回答結束-----")
+        message_history.append({"role": "assistant", "content": respond})
+        print("\n-----回答結束-----\n")
 
 
 if __name__ == "__main__":
