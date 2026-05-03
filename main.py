@@ -3,6 +3,8 @@ from functools import partial
 
 from openai import OpenAI
 
+from model_configurations import Deepseek
+
 
 def get_input(prompt: str = "> ") -> str:
     """重複提示直到使用者輸入非空行（去除前後空白後）"""
@@ -13,7 +15,9 @@ def get_input(prompt: str = "> ") -> str:
             print()
             exit(0)
 
-        if text.strip():
+        text = text.strip()
+
+        if text:
             return text
 
 
@@ -23,26 +27,28 @@ def main():
         api_key=os.getenv("NVIDIA_API_KEY"),
     )
 
+    model = Deepseek
+
     configured_completion = partial(
         client.chat.completions.create,
-        model="deepseek-ai/deepseek-v4-pro",
-        temperature=1,
-        top_p=0.95,
-        max_tokens=16384,
-        extra_body={
-            "chat_template_kwargs": {"thinking": True},
-            "reasoning_effort": "max",
-        },
+        model=model.label,
+        temperature=model.temp,
+        top_p=model.top_p,
+        max_tokens=model.max_tokens,
+        extra_body=model.extra_body,
         stream=True,
     )
 
+    system_prompt = ""
     message_history = []
+    if system_prompt:
+        message_history.append({"role": "system", "content": system_prompt})
 
     while True:
         prompt = get_input()
         message_history.append({"role": "user", "content": prompt})
 
-        print(message_history)
+        print("DEBUG:", message_history)
         completion = configured_completion(messages=message_history)
 
         thinking_active = False
@@ -55,15 +61,16 @@ def main():
             if chunk.choices:
                 delta = chunk.choices[0].delta
                 reasoning_content = getattr(delta, "reasoning_content", None)
+                content = getattr(delta, "content", None)
                 if reasoning_content:
                     thinking_active = True
                     print(reasoning_content, end="", flush=True)
-                if delta.content is not None:
+                if content:
                     if thinking_active:
                         print("\n-----思考結束-----\n")
                         thinking_active = False
-                    respond += delta.content
-                    print(delta.content, end="", flush=True)
+                    respond += content
+                    print(content, end="", flush=True)
 
         message_history.append({"role": "assistant", "content": respond})
         print("\n-----回答結束-----\n")
